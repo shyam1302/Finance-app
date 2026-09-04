@@ -4,6 +4,7 @@ import {
     getProducts,
     createOrder,
     verifyPayment,
+    recordPaymentFailure,
     chatWithAgent
 } from '../controllers/commerce.controller.js';
 
@@ -14,5 +15,6 @@ router.get('/products', getProducts);
 router.post('/chat', chatWithAgent);
 router.post('/order', createOrder);
 router.post('/verify', verifyPayment);
+router.post('/failure', recordPaymentFailure);
 
-export default router;
+export default router;

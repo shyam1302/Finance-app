@@ -117,3 +117,19 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   created_at TIMESTAMP DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS payment_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+  order_id VARCHAR(100),
+  payment_id VARCHAR(100),
+  amount DECIMAL(12,2),
+  status VARCHAR(20) DEFAULT 'failed',
+  error_code VARCHAR(100),
+  error_description TEXT,
+  error_source VARCHAR(50),
+  error_step VARCHAR(50),
+  error_reason VARCHAR(100),
+  metadata JSONB,
+  created_at TIMESTAMP DEFAULT NOW()
+);
+

@@ -185,15 +185,116 @@ export const verifyPayment = async (req, res) => {
                 ]);
             }
 
+            // Also record successful payment log if table exists
+            try {
+                const totalAmount = (items || []).reduce((sum, item) => sum + (Number(item.price) || 0), 0);
+                await query(`
+                    INSERT INTO payment_logs 
+                    (user_id, order_id, payment_id, amount, status, metadata)
+                    VALUES ($1, $2, $3, $4, 'success', $5)
+                `, [
+                    req.user.id,
+                    razorpay_order_id,
+                    razorpay_payment_id,
+                    totalAmount,
+                    JSON.stringify({ items, verified_at: new Date().toISOString() })
+                ]);
+            } catch (logErr) {
+                // Table might not exist or logging is non-blocking
+                console.warn("Payment log write skipped:", logErr.message);
+            }
+
             res.json({
                 success: true,
                 message: "Payment verified! All transactions saved!"
             });
         } else {
-            res.status(400).json({ success: false, error: "Invalid signature" });
+            console.error("Payment verification failed: Invalid signature for order", razorpay_order_id);
+            try {
+                await query(`
+                    INSERT INTO payment_logs 
+                    (user_id, order_id, payment_id, status, error_code, error_description, error_reason)
+                    VALUES ($1, $2, $3, 'failed', 'SIGNATURE_VERIFICATION_FAILED', 'Invalid signature returned from gateway', 'signature_mismatch')
+                `, [req.user.id, razorpay_order_id, razorpay_payment_id]);
+            } catch (logErr) {
+                console.warn("Payment log write skipped:", logErr.message);
+            }
+
+            res.status(400).json({
+                success: false,
+                error: "Invalid signature verification failed",
+                details: {
+                    reason: "signature_mismatch",
+                    description: "The payment response signature could not be verified by the server."
+                }
+            });
         }
     } catch (err) {
-        console.error(err);
+        console.error("Payment verification error:", err);
         res.status(500).json({ success: false, error: err.message });
     }
 };
+
+export const recordPaymentFailure = async (req, res) => {
+    try {
+        const {
+            order_id,
+            payment_id,
+            amount,
+            error_code,
+            error_description,
+            error_source,
+            error_step,
+            error_reason,
+            metadata,
+            items
+        } = req.body;
+
+        console.warn(`[Payment Failure] User ${req.user.id}: Order ${order_id || 'N/A'}, Payment ${payment_id || 'N/A'}, Reason: ${error_reason || error_description || 'Unknown'}`);
+
+        let logged = false;
+        try {
+            await query(`
+                INSERT INTO payment_logs 
+                (user_id, order_id, payment_id, amount, status, error_code, error_description, error_source, error_step, error_reason, metadata)
+                VALUES ($1, $2, $3, $4, 'failed', $5, $6, $7, $8, $9, $10)
+            `, [
+                req.user.id,
+                order_id || null,
+                payment_id || null,
+                amount ? Number(amount) : null,
+                error_code || 'PAYMENT_FAILED',
+                error_description || 'Payment could not be completed',
+                error_source || 'unknown',
+                error_step || 'unknown',
+                error_reason || 'unknown',
+                JSON.stringify({
+                    metadata: metadata || {},
+                    items: items || [],
+                    timestamp: new Date().toISOString()
+                })
+            ]);
+            logged = true;
+        } catch (dbErr) {
+            console.warn("Could not insert into payment_logs table (table might need init):", dbErr.message);
+        }
+
+        res.json({
+            success: true,
+            message: "Payment failure recorded successfully",
+            recorded: logged,
+            failureDetails: {
+                order_id,
+                payment_id,
+                error_code,
+                error_description,
+                error_source,
+                error_step,
+                error_reason
+            }
+        });
+    } catch (err) {
+        console.error("Record Payment Failure Error:", err);
+        res.status(500).json({ success: false, error: err.message });
+    }
+};
