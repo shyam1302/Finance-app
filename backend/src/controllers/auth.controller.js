@@ -70,7 +70,7 @@ export const getMe = async (req, res, next) => {
   }
 };
 
-export const refresh = async (req, res, next) => {
+export const refresh = async (req, res) => {
   try {
     const { refreshToken } = req.body;
     const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
@@ -82,7 +82,7 @@ export const refresh = async (req, res, next) => {
     
     const tokens = generateTokens({ id: decoded.id });
     res.json({ success: true, data: tokens });
-  } catch (err) {
+  } catch {
     return res.status(401).json({ success: false, error: 'Invalid refresh token' });
   }
 };

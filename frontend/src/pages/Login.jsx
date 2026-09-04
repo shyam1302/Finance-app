@@ -61,14 +61,9 @@ export default function Login() {
   const [error, setError] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
-  const [mounted, setMounted] = useState(false);
   
   const { login, register } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const handleModeSwitch = (newMode) => {
     if (newMode === mode || isAnimating) return;
@@ -97,7 +92,8 @@ export default function Login() {
       setIsVerified(true);
       setTimeout(() => navigate('/'), 800); 
     } catch (err) {
-      setError(err.response?.data?.error || 'Authorization Failed');
+      const errMsg = err.response?.data?.error || (err.message === 'Network Error' || !err.response ? 'Unable to connect to WealthOS Server. Check backend connection.' : 'Authorization Failed');
+      setError(errMsg);
       setIsSubmitting(false);
     }
   };
@@ -155,9 +151,9 @@ export default function Login() {
           
           <h2 className={`text-2xl text-transparent bg-clip-text pb-1 transition-all duration-500 ${mode === 'signup' ? 'bg-gradient-to-r from-[#FF8C00] to-[#FFD700]' : 'text-engraved-gold bg-gradient-to-r from-[#D4AF37] to-[#F3E5AB]'}`}>
              {mode === 'signup' ? (
-                 <TypewriterText text="PROVISION_NEW_WEALTH_NODE" active={mounted && mode === 'signup'} delay={0.1} />
+                 <TypewriterText text="PROVISION_NEW_WEALTH_NODE" active={mode === 'signup'} delay={0.1} />
              ) : (
-                 <TypewriterText fontClass="font-sans font-bold" text="SIGN_IN_TO_WEALTH_OS" active={mounted && mode === 'login'} delay={0.1} />
+                 <TypewriterText fontClass="font-sans font-bold" text="SIGN_IN_TO_WEALTH_OS" active={mode === 'login'} delay={0.1} />
              )}
           </h2>
         </div>
@@ -298,7 +294,7 @@ export default function Login() {
         {/* Terminal decorative footer */}
         <div className="mt-4 flex justify-between px-2 text-[8px] font-mono text-[#00E5FF]/40 tracking-widest uppercase pointer-events-none">
            <span>
-             SYNC: <RapidCounter target={9824} active={mounted} />ms
+             SYNC: <RapidCounter target={9824} active={true} />ms
            </span>
            <span>LAT: 34.0522 N / LONG: 118.2437 W</span>
         </div>

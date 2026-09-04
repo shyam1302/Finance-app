@@ -48,19 +48,7 @@ export const chatWithAgent = async (req, res) => {
 
         const { income, expenses } = result.rows[0];
         const savings = income - expenses;
-        const confirmWords = [
-            'yes', 'haan', 'ha', 'confirm',
-            'ok', 'theek', 'le lo', 'kharido',
-            'buy', 'lock kar do', 'lock karo',
-            'yahi chahiye', 'yeh lo', 'final kar do',
-            'book karo', 'order karo', 'isko lo',
-            'le lena', 'pakka', 'done', 'bilkul',
-            'perfect', 'sahi hai'
-        ];
 
-        const isConfirm = confirmWords.some(word =>
-            message.toLowerCase().includes(word)
-        );
 
         // Real products search karo
         let searchResults = [];

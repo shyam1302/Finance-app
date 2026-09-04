@@ -1,5 +1,11 @@
 {
-  "dependencies": {
-    "razorpay": "^2.9.8"
+  "name": "finance-app",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "lint:backend": "npm --prefix backend run lint",
+    "lint:frontend": "npm --prefix frontend run lint",
+    "lint": "npm --prefix backend run lint && npm --prefix frontend run lint",
+    "build:frontend": "npm --prefix frontend run build"
   }
 }

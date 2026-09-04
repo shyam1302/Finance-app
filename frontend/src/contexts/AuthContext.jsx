@@ -14,7 +14,7 @@ export const AuthProvider = ({ children }) => {
         try {
           const { data } = await api.get('/auth/me');
           setUser(data.data);
-        } catch (error) {
+        } catch {
           localStorage.removeItem('accessToken');
           localStorage.removeItem('refreshToken');
         }
@@ -52,4 +52,5 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => useContext(AuthContext);

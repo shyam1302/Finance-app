@@ -44,7 +44,7 @@ export default function AppLayout() {
           </div>
 
           <nav className="flex-1 px-6 py-10 overflow-y-auto relative scrollbar-hide z-10">
-            {navigation.map((item, idx) => {
+            {navigation.map((item) => {
               const isActive = location.pathname === item.href;
               const Icon = item.icon;
               return (

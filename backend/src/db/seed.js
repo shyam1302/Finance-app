@@ -11,7 +11,7 @@ const seedDB = async () => {
     const hash = await bcrypt.hash('password123', 10);
     const userRes = await query(
       `INSERT INTO users (name, email, password_hash) VALUES ($1, $2, $3) 
-       ON CONFLICT (email) DO UPDATE SET name=EXCLUDED.name RETURNING id`,
+       ON CONFLICT (email) DO UPDATE SET name=EXCLUDED.name, password_hash=EXCLUDED.password_hash RETURNING id`,
       ['Demo User', 'demo@wealth.os', hash]
     );
     const userId = userRes.rows[0].id;

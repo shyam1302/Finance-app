@@ -7,7 +7,7 @@ import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 if (typeof window !== 'undefined') {
   try {
     pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
-  } catch (e) {
+  } catch {
     pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version || '4.10.38'}/pdf.worker.min.mjs`;
   }
 }
@@ -54,7 +54,7 @@ export const cleanAmount = (val) => {
   // Remove commas
   str = str.replace(/,/g, '');
   // Remove parenthesis
-  str = str.replace(/[\(\)]/g, '').trim();
+  str = str.replace(/[()]/g, '').trim();
 
   const num = parseFloat(str);
   return isNaN(num) ? 0 : Math.abs(num);
@@ -64,7 +64,7 @@ export const cleanAmount = (val) => {
 const MONTH_MAP = {
   jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06',
   jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12',
-  january: '01', february: '02', march: '03', april: '04', may: '05', june: '06',
+  january: '01', february: '02', march: '03', april: '04', june: '06',
   july: '07', august: '08', september: '09', october: '10', november: '11', december: '12'
 };
 
@@ -87,7 +87,7 @@ export const normalizeDate = (raw) => {
   }
 
   // Handle "30 Aug 2026" or "30 Aug, 2026" or "17-Aug-2026" (Day Month, Year)
-  const dmyNamed = str.match(/\b(\d{1,2})[-\s\/]+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[-\s\/,]+(\d{2,4})\b/i);
+  const dmyNamed = str.match(/\b(\d{1,2})[-\s/]+(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[-\s/,]+(\d{2,4})\b/i);
   if (dmyNamed) {
     const day = dmyNamed[1].padStart(2, '0');
     const month = MONTH_MAP[dmyNamed[2].toLowerCase()] || '01';
@@ -106,7 +106,7 @@ export const normalizeDate = (raw) => {
   }
 
   // Handle "DD/MM/YYYY" or "DD-MM-YYYY" or "DD.MM.YYYY"
-  const dmyMatch = str.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
+  const dmyMatch = str.match(/^(\d{1,2})[/.-](\d{1,2})[/.-](\d{2,4})/);
   if (dmyMatch) {
     let day = dmyMatch[1].padStart(2, '0');
     let month = dmyMatch[2].padStart(2, '0');
@@ -247,7 +247,7 @@ export const parseStatementText = (rawText) => {
   const transactions = [];
 
   // Match date pattern: "30 Aug 2026", "Aug 17, 2026", "17-Aug-2026", "17/08/2026", "2026-08-17"
-  const datePattern = /\b(?:\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{2,4}|\d{1,2}[-\/\.](?:[A-Za-z]{3}|\d{1,2})[-\/\.]\d{2,4}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}|\d{4}-\d{2}-\d{2})\b/i;
+  const datePattern = /\b(?:\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{2,4}|\d{1,2}[/.-](?:[A-Za-z]{3}|\d{1,2})[/.-]\d{2,4}|(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4}|\d{4}-\d{2}-\d{2})\b/i;
 
   let currentBlock = [];
 
@@ -391,9 +391,9 @@ export const parsePlainTextLines = (rawText) => {
   const dateRegexes = [
     /\b(\d{1,2}\s+(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{2,4})\b/i,
     /\b((?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\s+\d{1,2},?\s+\d{4})\b/i,
-    /\b(\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{2,4})\b/,
+    /\b(\d{1,2}[/.-]\d{1,2}[/.-]\d{2,4})\b/,
     /\b(\d{1,2}[-\s](?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*[-\s]\d{2,4})\b/i,
-    /\b(\d{4}[\/\-\.]\d{1,2}[\/\-\.]\d{1,2})\b/
+    /\b(\d{4}[/.-]\d{1,2}[/.-]\d{1,2})\b/
   ];
 
   const amountRegex = /(?:₹|Rs\.?|INR|\$)?\s*([0-9]{1,3}(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?|[0-9]+(?:\.[0-9]{1,2})?)/g;
@@ -414,12 +414,12 @@ export const parsePlainTextLines = (rawText) => {
     const lineWithoutDate = line.replace(dateStr, ' ');
 
     let refNotes = '';
-    const refMatch = lineWithoutDate.match(/\/(?:[A-Za-z0-9_\-]{4,})\/|\b(?:REF|UPI|IMPS|NEFT|POS|CHQ|UTR|txn ID)[-:\s]*[A-Za-z0-9]+/i);
+    const refMatch = lineWithoutDate.match(/\/(?:[A-Za-z0-9_-]{4,})\/|\b(?:REF|UPI|IMPS|NEFT|POS|CHQ|UTR|txn ID)[-:\s]*[A-Za-z0-9]+/i);
     if (refMatch) {
-      refNotes = refMatch[0].replace(/[\/]/g, '').trim();
+      refNotes = refMatch[0].replace(/[/]/g, '').trim();
     }
 
-    const amountSearchText = lineWithoutDate.replace(/\/[A-Za-z0-9_\-]+\//g, ' ');
+    const amountSearchText = lineWithoutDate.replace(/\/[A-Za-z0-9_-]+\//g, ' ');
     const amountsFound = [];
     let amtMatch;
     
@@ -446,11 +446,11 @@ export const parsePlainTextLines = (rawText) => {
     const amount = primaryAmountObj.value;
 
     let desc = lineWithoutDate
-      .replace(/\/[A-Za-z0-9_\-]+\//g, ' ')
+      .replace(/\/[A-Za-z0-9_-]+\//g, ' ')
       .replace(BANK_ACCOUNT_REGEX, '')
       .replace(/\b(dr|cr|debit|credit|inr|rs|balance|bal)\b\.?/gi, '')
       .replace(/[0-9]{1,3}(?:,[0-9]{2,3})*(?:\.[0-9]{1,2})?/g, '')
-      .replace(/[\/\-\:\,\#\|\_]/g, ' ')
+      .replace(/[/:\-,#|_]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
 
@@ -604,7 +604,7 @@ export const parseStatementFile = async (file) => {
   try {
     const text = await file.text();
     return await parseCSV(text);
-  } catch (err) {
+  } catch {
     const arrayBuffer = await file.arrayBuffer();
     return await parseExcel(arrayBuffer);
   }

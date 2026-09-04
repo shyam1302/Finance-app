@@ -8,34 +8,35 @@ import { useAuth } from '../contexts/AuthContext';
 export default function CommerceAgent() {
     const { user } = useAuth();
     const [messages, setMessages] = useState([{
-        id: 1,
+        id: 'msg-init-1',
         role: 'assistant',
-        content: `Namaste ${user?.name}! 🛒 Main hoon tera AI Commerce Agent!\n\nMain internet pe real products dhundta hoon aur teri financial situation dekh ke suggest karta hoon.\n\nEk ya multiple products maango — main sab dhundh dunga!\n\nBata — kya kharidna hai aaj?`
+        content: `Namaste ${user?.name || 'Operator'}! 🛒 Main hoon tera AI Commerce Agent!\n\nMain internet pe real products dhundta hoon aur teri financial situation dekh ke suggest karta hoon.\n\nEk ya multiple products maango — main sab dhundh dunga!\n\nBata — kya kharidna hai aaj?`
     }]);
     const [input, setInput] = useState('');
-    const [savings, setSavings] = useState(null);
+    const [adjustedSavings, setAdjustedSavings] = useState(null);
     const [realProducts, setRealProducts] = useState([]);
     const [cart, setCart] = useState([]);
     const [showCart, setShowCart] = useState(false);
 
-    useQuery({
+    const { data: initialSavings } = useQuery({
         queryKey: ['commerceSavings'],
         queryFn: async () => {
             const res = await api.post('/commerce/chat', { message: 'savings check' });
-            setSavings(res.data.savings);
             return res.data.savings;
         }
     });
+
+    const savings = adjustedSavings !== null ? adjustedSavings : (initialSavings ?? null);
 
     const chatMutation = useMutation({
         mutationFn: async (message) => (await api.post('/commerce/chat', { message })).data,
         onSuccess: (data) => {
             setMessages(prev => [...prev, {
-                id: Date.now(),
+                id: `assistant-msg-${prev.length + 1}`,
                 role: 'assistant',
                 content: data.data,
             }]);
-            if (data.savings !== undefined) setSavings(data.savings);
+            if (data.savings !== undefined) setAdjustedSavings(data.savings);
             if (data.products && data.products.length > 0) {
                 setRealProducts(data.products);
             }
@@ -65,9 +66,9 @@ export default function CommerceAgent() {
                         setCart([]);
                         setShowCart(false);
                         setRealProducts([]);
-                        setSavings(prev => prev - totalAmount);
+                        setAdjustedSavings(prev => (prev !== null ? prev - totalAmount : 0));
                         setMessages(prev => [...prev, {
-                            id: Date.now(),
+                            id: `assistant-order-${prev.length + 1}`,
                             role: 'assistant',
                             content: `✅ Payment successful! ${items.length} items khareed liye!\n\nTotal: ₹${totalAmount.toLocaleString('en-IN')}\n\nSaari transactions dashboard mein add ho gayi hain! 🎉`
                         }]);
@@ -84,7 +85,7 @@ export default function CommerceAgent() {
         e.preventDefault();
         if (!input.trim() || chatMutation.isPending) return;
         const userMsg = input.trim();
-        setMessages(prev => [...prev, { id: Date.now(), role: 'user', content: userMsg }]);
+        setMessages(prev => [...prev, { id: `user-msg-${prev.length + 1}`, role: 'user', content: userMsg }]);
         setInput('');
         setRealProducts([]);
         chatMutation.mutate(userMsg);
@@ -92,15 +93,17 @@ export default function CommerceAgent() {
 
     const addToCart = (product) => {
         const price = parseFloat(product.price?.replace(/[^0-9.]/g, '')) || 0;
-        const cartItem = {
-            id: Date.now(),
-            name: product.title,
-            price,
-            source: product.source,
-            image: product.imageUrl,
-            link: product.link
-        };
-        setCart(prev => [...prev, cartItem]);
+        setCart(prev => [
+            ...prev,
+            {
+                id: `cart-item-${product.title || 'item'}-${prev.length + 1}`,
+                name: product.title,
+                price,
+                source: product.source,
+                image: product.imageUrl,
+                link: product.link
+            }
+        ]);
         setShowCart(true);
     };
 
@@ -164,7 +167,7 @@ export default function CommerceAgent() {
                 <div className="flex-1 bg-cotes-de-geneve plate-border shadow-plate rounded-2xl flex flex-col overflow-hidden">
                     <div className="flex-1 p-6 overflow-y-auto space-y-6 bg-[#050505]/80 scrollbar-thin scrollbar-thumb-[#333]">
                         {messages.map((m, i) => (
-                            <div key={i} className={cn(
+                            <div key={m.id || i} className={cn(
                                 "flex items-start max-w-[85%]",
                                 m.role === 'user' ? "ml-auto flex-row-reverse" : ""
                             )}>

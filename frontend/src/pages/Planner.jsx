@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../lib/api';
@@ -143,12 +143,6 @@ function LoansTab({ loans, isLoading, onAdd, onEdit, onDelete }) {
    const sumOut = loans.reduce((acc,l)=>acc+Number(l.outstanding||0), 0);
    const sumPrin = loans.reduce((acc,l)=>acc+Number(l.principal||0), 0);
    const sumEmi = loans.reduce((acc,l)=>acc+Number(l.emi_amount||0), 0);
-   const sumIntPaid = loans.reduce((acc, l) => {
-      const p = Number(l.principal);
-      const o = Number(l.outstanding);
-      const r = (Number(l.interest_rate)/100)/12;
-      return acc + ((p - o) * r * 20); // Placeholder heuristic
-   }, 0);
 
    return (
       <div className="space-y-6 animate-fade-in w-full">

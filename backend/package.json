@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint .",
+    "lint": "eslint .",
     "format": "prettier --write ."
   },
   "keywords": [],

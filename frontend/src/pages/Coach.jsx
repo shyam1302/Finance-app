@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { Bot, Send, User, Trophy, Flame } from 'lucide-react';
@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext';
 
 export default function Coach() {
   const { user } = useAuth();
-  const [messages, setMessages] = useState([]);
+  const [localMessages, setLocalMessages] = useState([]);
   const [input, setInput] = useState('');
   const chatEndRef = useRef(null);
 
@@ -16,61 +16,43 @@ export default function Coach() {
     queryFn: async () => (await api.get('/coach/gamification')).data.data
   });
 
-  // CHAT HISTORY LOAD KARO
+  // CHAT HISTORY LOAD
   const { data: historyData, isLoading: historyLoading } = useQuery({
     queryKey: ['chatHistory'],
-    queryFn: async () => (await api.get('/coach/history')).data.data,
-    onSuccess: (data) => {
-      if (data && data.length > 0) {
-        const loadedMessages = data.map((msg, index) => ({
-          id: index,
-          role: msg.role,
-          content: msg.message
-        }));
-        setMessages(loadedMessages);
-      } else {
-        // Pehli baar open kiya
-        setMessages([{
-          id: 1,
-          role: 'assistant',
-          content: `Hello ${user?.name}, I'm your AI Wealth Coach. How can I optimize your capital today?`
-        }]);
-      }
-    }
+    queryFn: async () => (await api.get('/coach/history')).data.data
   });
 
-  // History load hone ke baad messages set karo
-  useEffect(() => {
-    if (historyData) {
-      if (historyData.length > 0) {
-        const loadedMessages = historyData.map((msg, index) => ({
-          id: index,
-          role: msg.role,
-          content: msg.message
-        }));
-        setMessages(loadedMessages);
-      } else {
-        setMessages([{
-          id: 1,
-          role: 'assistant',
-          content: `Hello ${user?.name}, I'm your AI Wealth Coach. How can I optimize your capital today?`
-        }]);
-      }
+  const baseMessages = useMemo(() => {
+    if (historyData && historyData.length > 0) {
+      return historyData.map((msg, index) => ({
+        id: `hist-${index}`,
+        role: msg.role,
+        content: msg.message
+      }));
     }
-  }, [historyData]);
+    return [{
+      id: 'init-1',
+      role: 'assistant',
+      content: `Hello ${user?.name || 'Operator'}, I'm your AI Wealth Coach. How can I optimize your capital today?`
+    }];
+  }, [historyData, user?.name]);
+
+  const allMessages = useMemo(() => {
+    return [...baseMessages, ...localMessages];
+  }, [baseMessages, localMessages]);
 
   const chatMutation = useMutation({
     mutationFn: async (message) => await api.post('/coach/chat', { message }),
     onSuccess: (res) => {
-      setMessages(prev => [...prev, {
-        id: Date.now(),
+      setLocalMessages(prev => [...prev, {
+        id: `assistant-${Date.now()}`,
         role: 'assistant',
         content: res.data.data
       }]);
     },
     onError: () => {
-      setMessages(prev => [...prev, {
-        id: Date.now(),
+      setLocalMessages(prev => [...prev, {
+        id: `assistant-${Date.now()}`,
         role: 'assistant',
         content: "SYSTEM FAILURE: Connection broken."
       }]);
@@ -82,8 +64,8 @@ export default function Coach() {
     if (!input.trim() || chatMutation.isPending) return;
 
     const userMsg = input.trim();
-    setMessages(prev => [...prev, {
-      id: Date.now(),
+    setLocalMessages(prev => [...prev, {
+      id: `user-${Date.now()}`,
       role: 'user',
       content: userMsg
     }]);
@@ -93,7 +75,7 @@ export default function Coach() {
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, chatMutation.isPending]);
+  }, [allMessages, chatMutation.isPending]);
 
   return (
     <div className="absolute inset-x-0 inset-y-0 flex flex-col gap-4 animate-fade-in p-4 md:p-6 max-w-7xl mx-auto w-full">
@@ -132,8 +114,8 @@ export default function Coach() {
             </div>
           )}
 
-          {messages.map((m, index) => (
-            <div key={index} className={cn("flex items-start max-w-[85%]", m.role === 'user' ? "ml-auto flex-row-reverse" : "")}>
+          {allMessages.map((m, index) => (
+            <div key={m.id || index} className={cn("flex items-start max-w-[85%]", m.role === 'user' ? "ml-auto flex-row-reverse" : "")}>
               <div className={cn(
                 "w-10 h-10 rounded-full flex items-center justify-center shrink-0 border",
                 m.role === 'user' ? "bg-[#111] border-[var(--color-champagne-gold)] text-[var(--color-champagne-gold)] ml-4 shadow-[0_0_8px_rgba(212,175,55,0.3)]" : "bg-[#0a0a0a] border-[#444] text-[#888] mr-4 shadow-sm"
@@ -164,7 +146,7 @@ export default function Coach() {
           <div ref={chatEndRef}></div>
         </div>
 
-        {messages.length < 3 && !chatMutation.isPending && (
+        {allMessages.length < 3 && !chatMutation.isPending && (
           <div className="bg-[#0a0a0a] px-6 py-3 flex gap-3 overflow-x-auto border-t border-[#333] relative z-20">
             {['Analyze my current finances', 'Do I have any budget warnings?', 'Are my goals on track?'].map(txt => (
               <button key={txt} onClick={() => setInput(txt)} className="text-[10px] font-mono font-bold tracking-widest text-[#aaa] border border-[#444] px-4 py-2 rounded uppercase whitespace-nowrap hover:bg-[#111] hover:text-[var(--color-champagne-gold)] hover:border-[var(--color-champagne-gold)] transition-colors shadow-recessed focus:outline-none">

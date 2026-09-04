@@ -73,7 +73,7 @@ export default function Transactions() {
     }
   });
 
-  const txs = data?.data || [];
+  const txs = useMemo(() => data?.data || [], [data?.data]);
   const pagination = data?.pagination || { total: 0, page: 1, totalPages: 1 };
 
   const filteredTxs = useMemo(() => {

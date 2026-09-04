@@ -7,7 +7,7 @@ export const getMFPrice = async (schemeCode) => {
       return parseFloat(data.data[0].nav);
     }
     return null;
-  } catch(e) { 
+  } catch { 
     return null; 
   }
 };
@@ -17,7 +17,7 @@ export const getCryptoPrice = async (coinId) => {
     const cleanId = coinId.toLowerCase().trim();
     const { data } = await axios.get(`https://api.coingecko.com/api/v3/simple/price?ids=${cleanId}&vs_currencies=inr`, { timeout: 4000 });
     return data[cleanId]?.inr || null;
-  } catch(e) { 
+  } catch { 
     return null; 
   }
 };
@@ -38,12 +38,12 @@ export const getStockPrice = async (symbol) => {
         if (price && !isNaN(price)) {
           return Number(price);
         }
-      } catch (err) {
+      } catch {
         // try next candidate
       }
     }
     return null;
-  } catch (e) {
+  } catch {
     return null;
   }
 };
