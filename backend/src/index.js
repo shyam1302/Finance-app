@@ -50,9 +50,18 @@ app.use('/api/taxes', taxRoutes);
 app.use('/api/coach', coachRoutes);
 app.use('/api/commerce', commerceRoutes);
 
+app.get('/', (req, res) => {
+  res.json({ message: 'Wealth OS Backend API is running!', status: 'ok' });
+});
+
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date() });
+});
+
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
 });
+
 
 // Error handling - must be after all routes
 app.use(errorHandler);
