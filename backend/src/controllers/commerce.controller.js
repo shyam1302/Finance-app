@@ -88,32 +88,40 @@ Rules:
 8. Keep under 150 words
 `;
 
-        const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${apiKey}`,
-            {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: prompt }] }],
-                    generationConfig: { maxOutputTokens: 600 }
-                })
+        const candidateModels = ['gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-2.5-flash-lite'];
+        let reply = '';
+        let callSuccess = false;
+
+        for (const model of candidateModels) {
+            try {
+                const response = await fetch(
+                    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: [{ parts: [{ text: prompt }] }],
+                            generationConfig: { maxOutputTokens: 600 }
+                        })
+                    }
+                );
+
+                const data = await response.json();
+                if (!data.error && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+                    reply = data.candidates[0].content.parts[0].text;
+                    callSuccess = true;
+                    break;
+                } else if (data.error) {
+                    console.warn(`[Gemini Commerce] Model ${model} error:`, data.error.message || data.error);
+                }
+            } catch (callErr) {
+                console.warn(`[Gemini Commerce] Request error for ${model}:`, callErr.message);
             }
-        );
-
-        const data = await response.json();
-
-        if (data.error) {
-            console.error("Gemini Error:", data.error.message);
-            return res.json({
-                success: true,
-                data: "Sorry, AI temporarily unavailable. Please try again!",
-                savings: Number(savings),
-                products: searchResults.slice(0, 6)
-            });
         }
 
-        const reply = data.candidates?.[0]?.content?.parts?.[0]?.text
-            || "Kuch samajh nahi aaya, dobara poochho!";
+        if (!callSuccess) {
+            reply = "I found these relevant options based on your savings. Review the products on the right!";
+        }
 
         res.json({
             success: true,

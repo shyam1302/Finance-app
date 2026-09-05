@@ -92,30 +92,46 @@ Analyze the user's financial reality provided in JSON to answer their query inte
       [req.user.id, 'user', message]
     );
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${apiKey}`, {
-       method: 'POST',
-       headers: { 'Content-Type': 'application/json' },
-       body: JSON.stringify({
-         contents: [{ parts: [{ text: userPrompt }] }],
-         generationConfig: { maxOutputTokens: 2048 }
-       })
-    });
-
-    const data = await response.json();
-    
+    const candidateModels = ['gemini-flash-latest', 'gemini-flash-lite-latest', 'gemini-2.5-flash-lite'];
     let aiReply = '';
-    
-    if (data.error) {
-        const lowerMsg = (message || "").toLowerCase();
-        aiReply = "My connection to the neural core is restricted by API constraints, but my baseline directive is: Protect your capital, maintain a sturdy emergency fund, and invest consistently in INR.";
-        
-        if (lowerMsg.includes('80c') || lowerMsg.includes('tax')) {
-          aiReply = "Under section 80C, you can claim up to ₹1.5 Lakhs in deductions. Leverage ELSS for capital appreciation combined with tax benefits, alongside PPF for stable, tax-free accumulation.";
-        } else if (lowerMsg.includes('spending')) {
-          aiReply = "Ensure your discretionary expenses remain below 30% of your total income. This preserves your savings rate and accelerates your journey to financial autonomy.";
+    let callSuccess = false;
+
+    for (const model of candidateModels) {
+      try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+           method: 'POST',
+           headers: { 'Content-Type': 'application/json' },
+           body: JSON.stringify({
+             contents: [{ parts: [{ text: userPrompt }] }],
+             generationConfig: { maxOutputTokens: 2048 }
+           })
+        });
+
+        const data = await response.json();
+        if (!data.error && data.candidates?.[0]?.content?.parts?.[0]?.text) {
+          aiReply = data.candidates[0].content.parts[0].text;
+          callSuccess = true;
+          break;
+        } else if (data.error) {
+          console.warn(`[Gemini Coach] Model ${model} error:`, data.error.message || data.error);
         }
+      } catch (callErr) {
+        console.warn(`[Gemini Coach] Request error for ${model}:`, callErr.message);
+      }
+    }
+
+    if (!callSuccess) {
+      const lowerMsg = (message || "").toLowerCase();
+      if (lowerMsg.includes('80c') || lowerMsg.includes('tax')) {
+        aiReply = "Under section 80C, you can claim up to ₹1.5 Lakhs in deductions. Leverage ELSS for capital appreciation combined with tax benefits, alongside PPF for stable, tax-free accumulation.";
+      } else if (lowerMsg.includes('trip') || lowerMsg.includes('travel') || lowerMsg.includes('vacation') || lowerMsg.includes('europe')) {
+        aiReply = "To see if you are on track for your trip, review your target goal amount and current savings in the Goals tab. Consistently allocating a portion of your monthly surplus to a dedicated liquid fund will keep you on schedule.";
+      } else if (lowerMsg.includes('spending') || lowerMsg.includes('budget')) {
+        aiReply = "Ensure your discretionary expenses remain below 30% of your total income. This preserves your savings rate and accelerates your journey to financial autonomy.";
+      } else {
+        aiReply = "I am currently experiencing higher than normal network traffic, but my primary advice is: maintain a 3-6 month emergency fund, track monthly expenses, and invest systematically in INR.";
+      }
     } else {
-      aiReply = data.candidates?.[0]?.content?.parts?.[0]?.text || "Unable to process advice at this moment.";
       // Sanitize any stray dollar signs to Rupee symbol
       aiReply = aiReply.replace(/\$(\d)/g, '₹$1');
     }
